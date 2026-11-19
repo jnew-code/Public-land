@@ -1,19 +1,29 @@
 /* Texas Public Land Guide - offline cache. Cache-first, versioned.
    To ship an update: change VERSION (and the list below if files were added). All paths are relative to this file,
    so it works under a GitHub Pages project path (https://<user>.github.io/<repo>/). */
-const VERSION = 'tx-land-guide-v1';
+const VERSION = 'tx-land-guide-v4';
 const PRECACHE = [
   "./",
   "about.html",
   "area.html",
   "css/styles.css",
   "data/areas.js",
+  "data/areas-central.js",
   "data/hunting-bot.js",
   "data/photos.js",
+  "fonts/OFL.txt",
+  "fonts/barlow-400.woff2",
+  "fonts/barlow-500.woff2",
+  "fonts/barlow-600.woff2",
+  "fonts/barlow-700.woff2",
+  "fonts/barlow-condensed-700.woff2",
   "icons/apple-touch-icon.png",
   "icons/icon-192.png",
   "icons/icon-512-maskable.png",
   "icons/icon-512.png",
+  "img/bg-lake-dusk.webp",
+  "img/bg-pasture.webp",
+  "img/bg-pier.webp",
   "img/dinosaur-valley.jpg",
   "img/lake-whitney.jpg",
   "img/somerville.jpg",

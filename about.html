@@ -1,20 +1,26 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1d3a2c"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"><link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="TX Public Land"><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="css/styles.css"><title>About · Texas Public Land Guide</title></head>
-<body data-page="about"><div id="chrome-top"></div><main class="wrap prose" style="padding-top:18px">
-<h1>About this prototype</h1>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a0d0b"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"><link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="TX Public Land"><meta name="robots" content="noindex,nofollow"><link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="css/styles.css"><title>About · Texas Public Land Guide</title></head>
+<body data-page="about"><div class="bg-photo" aria-hidden="true"><img src="img/bg-pier.webp" alt="" decoding="async"></div><div id="chrome-top"></div><main class="wrap prose" style="padding-top:18px">
+<div class="sheet-block">
+<h1>About this guide</h1>
 <div class="disclaimer">Rules change every season. Verify with TPWD. Not legal advice.</div>
-<p>This is a <b>private prototype</b> of a free guide to Texas public hunting land near Clifton and College Station. "Texas Public Land Guide" is a placeholder working name. It is not affiliated with Texas Parks and Wildlife Department (TPWD).</p>
+<p>This is a free guide to Texas public hunting land in Central Texas (and one example outside the region). It is not affiliated with Texas Parks and Wildlife Department (TPWD).</p>
 <h2>How the data works</h2>
 <ul>
 <li>Every fact links to the TPWD page it came from (the numbered sources at the bottom of each area).</li>
 <li>Maps are links to TPWD's own maps. This guide draws no boundaries and drops no pins.</li>
 <li>Where TPWD pages disagree, the page shows both and marks it <b>CONFLICT</b>. It does not pick a winner.</li>
 <li>Anything not checked yet shows <span class="ph-flag">PLACEHOLDER: awaiting data</span>. Do not treat it as fact. "Not stated in official sources" means the TPWD pages checked do not say.</li>
-<li>Seasons shown are 2026-27. Hunting Bot's season data has not arrived; seasons here were read from TPWD pages and PDFs. Hunting Bot's data can be dropped into <code>data/hunting-bot.js</code> and will override these rows by area id.</li>
+<li>Seasons shown are for the season named on each page (2026-27 now). Long official hunt-table text is shortened to an excerpt with a link to the full TPWD listing. If a page's last-verified season is not the current one, it says so.</li>
+<li>Annual APH lease units (small walk-in dove and small-game tracts) can change from year to year. A unit that was open last season may not be in the current booklet.</li>
 </ul>
+<h2>What “Central Texas” means here</h2>
+<p>Counties included: Bell, Blanco, Bosque, Brazos, Brown, Burleson, Burnet, Caldwell, Coleman, Comal, Comanche, Coryell, Erath, Falls, Fayette, Freestone, Gillespie, Grimes, Hamilton, Hays, Hill, Hood, Kendall, Kerr, Kimble, Lampasas, Lee, Leon, Limestone, Llano, Madison, Mason, McCulloch, McLennan, Milam, Mills, Navarro, Palo Pinto, Robertson, San Saba, Somervell, Travis, Washington and Williamson. That is meant to cover the Cross Timbers, Blackland Prairie, Post Oak Savannah and eastern Edwards Plateau / Hill Country around Waco, Temple/Killeen, Austin, Bryan-College Station, Clifton/Stephenville, Brownwood and San Saba/Llano. Kimble County is included so South Llano River State Park is not left out. J.D. Murphree WMA is kept only as an outside-region example.</p>
+<p>Areas listed are ones found in TPWD’s 2026-27 APH data and drawn-hunt catalog (plus official WMA and state park hunt pages). A “Last verified” date of Nov. 19, 2026 means the facts on that page were checked against those sources on that day. Older pages that were not re-opened still show Nov. 18, 2026.</p>
 <h2>Where each area stands</h2>
 <div class="table-wrap"><table class="simple"><thead><tr><th>Area</th><th>Hunting data</th><th>Fishing block</th></tr></thead><tbody id="areastatus"></tbody></table></div>
 <h2>Photo credits</h2>
 <ul id="credits"></ul>
-<p class="small muted">Other headers are simple illustrations, not photos of the area. No TPWD photos or map images are used.</p>
+<p class="small muted">Other headers are simple illustrations, not photos of the area. No TPWD photos, logos, seals or map images are used.</p>
+<p class="small muted">Fonts: Barlow and Barlow Condensed, © The Barlow Project Authors, served from this site under the <a href="fonts/OFL.txt">SIL Open Font License 1.1</a>.</p>
 <p><a class="btn" href="index.html">Back to all areas</a></p>
-</main><div id="chrome-bottom"></div><script src="data/areas.js"></script><script src="data/photos.js"></script><script src="data/hunting-bot.js"></script><script src="js/app.js"></script></body></html>
+</div></main><div id="chrome-bottom"></div><script src="data/areas.js"></script><script src="data/areas-central.js"></script><script src="data/photos.js"></script><script src="data/hunting-bot.js"></script><script src="js/app.js"></script></body></html>

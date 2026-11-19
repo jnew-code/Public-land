@@ -14,6 +14,11 @@
     if (HB[id].sources) Object.assign(SOURCES, HB[id].sources);
   });
 
+  // ---- constants for release ----
+  var ISSUES = 'https://github.com/jnew-code/Public-land/issues/new';
+  var PRIVACY = 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement';
+  var DISC = META.disclaimer;
+
   // ---- helpers ----
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
   function $(sel, root) { return (root || document).querySelector(sel); }
@@ -21,9 +26,37 @@
   function txt(t) { // escape + flag placeholders
     return esc(t).split(esc(PHTXT)).join('<span class="ph-flag">' + PHTXT + '</span>');
   }
-  var SPECIES = { deer: 'Deer', hog: 'Feral hog', waterfowl: 'Waterfowl', dove: 'Dove', 'small-game': 'Small game', quail: 'Quail' };
-  var ACCESS = { aph: 'APH walk-in', drawn: 'Drawn hunts only', 'state-park': 'State park entry' };
+  var SPECIES = { deer: 'Deer', hog: 'Feral hog', waterfowl: 'Waterfowl', dove: 'Dove', 'small-game': 'Small game', quail: 'Quail', turkey: 'Turkey' };
+  var ACCESS = { aph: 'APH walk-in', drawn: 'Drawn hunts', 'state-park': 'State park entry' };
+  var LANDSCAPE = { 'cross-timbers': 'Cross Timbers', 'blackland-post-oak': 'Blackland / Post Oak', 'hill-country': 'Hill Country' };
+  var HUBS = { clifton: 'Clifton', collegeStation: 'College Station', waco: 'Waco', temple: 'Temple / Killeen', austin: 'Austin', stephenville: 'Stephenville', brownwood: 'Brownwood', llano: 'Llano / San Saba' };
+  var NEAR_KEY = { clifton: 'clifton', 'college-station': 'collegeStation', waco: 'waco', temple: 'temple', austin: 'austin', stephenville: 'stephenville', brownwood: 'brownwood', llano: 'llano' };
   var NEAR_MI = 75;
+
+  // season helpers: a page is "verified for the current season" only if its last-verified date falls in that season (Sep 1 - Aug 31)
+  function seasonOf(iso) { var p = iso.split('-').map(Number); var y = p[1] >= 9 ? p[0] : p[0] - 1; return y + '-' + String((y + 1) % 100).padStart(2, '0'); }
+  function todayISO() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  var CURRENT_SEASON = [seasonOf(todayISO()), META.seasonYear].sort().pop();
+  function verifiedSeason(a) { return a.verifiedSeason || seasonOf(a.lastVerified || META.lastVerified); }
+  function isCurrent(a) { return verifiedSeason(a) === CURRENT_SEASON; }
+  function isPrivate(a) {
+    return /private[- ]lands?/i.test(a.kind || '') || ((a.hunting && a.hunting.seasons) || []).some(function (s) { return /^private lands/i.test(s.species || ''); });
+  }
+  // long official text is shown as a short excerpt plus a link, not copied in full
+  function clip(t, n) {
+    t = String(t == null ? '' : t); if (t.length <= n) return { text: t, cut: false };
+    var s = t.slice(0, n), i = Math.max(s.lastIndexOf('. '), s.lastIndexOf('; '));
+    s = i > n * 0.5 ? s.slice(0, i + 1) : s.slice(0, s.lastIndexOf(' '));
+    return { text: s.replace(/[\s,;:]+$/, '') + '…', cut: true };
+  }
+  function srcLink(ids) { var id = (ids || []).filter(function (x) { return SOURCES[x]; })[0]; return id ? ' <a class="small" href="' + esc(SOURCES[id].url) + '" rel="noopener">Full details on TPWD ↗</a>' : ''; }
+  function plainBots(s) { return String(s == null ? '' : s).replace(/^Fishing Bot(\'s)?/, function (m, p) { return p ? "The earlier draft's" : 'The earlier draft'; }).replace(/Fishing Bot(\'s)?/g, function (m, p) { return p ? "the earlier draft's" : 'the earlier draft'; }); }
+  function verifyHTML(a) {
+    var d = verifiedDate(a), vs = verifiedSeason(a);
+    return isCurrent(a)
+      ? '<div class="verify-badge">✔ Last verified: ' + d + ' <span class="small" style="font-weight:500">· ' + esc(vs) + ' season (checked against TPWD pages)</span></div>'
+      : '<div class="verify-badge stale">⚠ Not verified for the current season (' + esc(CURRENT_SEASON) + '). <span class="small" style="font-weight:500">Last verified ' + d + ' for the ' + esc(vs) + ' season. Check TPWD before you go.</span></div>';
+  }
 
   // citation registry (per page)
   var cites = [];
@@ -39,13 +72,21 @@
 
   // ---- shared chrome ----
   function chrome(page) {
-    var bar = '<div class="proto-bar">PRIVATE PROTOTYPE <span>· not published · for Judd\'s review only</span></div>';
     var logo = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 L12 9 L17 18 L21 12 L29 27Z" fill="#e0590c"/><path d="M3 27 L12 9 L17 18 L11 27Z" fill="#fff" opacity=".18"/><circle cx="25" cy="7" r="3" fill="#ffd9bd"/></svg>';
     var link = function (href, label, key) { return '<a href="' + href + '"' + (page === key ? ' aria-current="page"' : '') + '>' + label + '</a>'; };
     var back = page === 'home' ? '' : '<a class="back" href="index.html" aria-label="Back to all areas">‹ All areas</a>';
-    $('#chrome-top').innerHTML = bar + '<header class="site-header"><div class="wrap inner">' + back + '<a class="brand" href="index.html">' + logo + '<span>' + esc(META.workingName) + '</span><span class="working" title="Placeholder working name">Working name</span></a><nav class="nav" aria-label="Main">' +
+    $('#chrome-top').innerHTML = '<header class="site-header"><div class="wrap inner">' + back + '<a class="brand" href="index.html">' + logo + '<span>' + esc(META.workingName) + '</span></a><nav class="nav" aria-label="Main">' +
       link('index.html', 'Areas', 'home') + link('permits.html', 'Permits explained', 'permits') + link('about.html', 'About', 'about') + '</nav></div></header>';
-    $('#chrome-bottom').innerHTML = '<footer class="footer"><div class="wrap"><div class="disc">' + esc(META.disclaimer) + '</div><div>Private prototype of <b>' + esc(META.workingName) + '</b> (placeholder name). Data checked against TPWD pages on ' + fmtDate(META.lastVerified) + '. Free to use; no accounts. Not affiliated with TPWD. <a href="about.html">Data notes and photo credits</a>.</div></div></footer>';
+    var upd = [META.updated, META.lastVerifiedCentral, META.lastVerified].filter(Boolean).sort().pop();
+    $('#chrome-bottom').innerHTML = '<footer class="footer"><div class="wrap"><div class="disc">' + esc(DISC) + '</div>' +
+      '<div><b>' + esc(META.workingName) + '</b>. Last updated ' + fmtDate(upd) + '. Each area page shows its own last-verified date. Free to use; no accounts. Not affiliated with TPWD. <a href="about.html">Data notes and photo credits</a> · <a href="' + ISSUES + '" rel="noopener">Report an error</a>.</div>' +
+      '<div class="small privacy">This site doesn\'t collect personal data. It\'s hosted on GitHub Pages; see <a href="' + PRIVACY + '" rel="noopener">GitHub\'s privacy statement</a>.</div>' +
+      '<div class="small bg-credit">Photos by Judd New</div></div></footer>';
+  }
+
+  // Wikimedia credit: linked title, author, linked license, and what was changed
+  function creditHTML(p) {
+    return '“<a href="' + esc(p.page) + '" rel="noopener">' + esc(p.title.replace(/\.jpe?g$/i, '')) + '</a>” by ' + esc(p.author) + ' via Wikimedia Commons, <a href="' + esc(p.licenseUrl) + '" rel="noopener">' + esc(p.license) + '</a>. ' + esc(p.changes || 'Resized and compressed; cropped to fit by the page layout.');
   }
 
   // ---- illustrated headers ----
@@ -79,7 +120,20 @@
   }
 
   // ---- distance ----
-  function miles(a, town) { return town === 'clifton' ? a.approxMiles.clifton : a.approxMiles.collegeStation; }
+  function miles(a, townKey) {
+    var m = a.approxMiles || {};
+    if (townKey === 'clifton') return m.clifton;
+    if (townKey === 'cs' || townKey === 'college-station' || townKey === 'collegeStation') return m.collegeStation;
+    return m[townKey];
+  }
+  function nearestHub(a) {
+    var m = a.approxMiles || {}, best = null, bestN = Infinity;
+    Object.keys(HUBS).forEach(function (k) {
+      if (typeof m[k] === 'number' && m[k] < bestN) { bestN = m[k]; best = k; }
+    });
+    return best ? { key: best, miles: bestN, label: HUBS[best] } : null;
+  }
+  function verifiedDate(a) { return fmtDate(a.lastVerified || META.lastVerified); }
   function hasPlaceholder(a) {
     if (a.hunting.status === 'placeholder') return true;
     if (a.hunting.seasons.some(function (s) { return s.status === 'placeholder'; })) return true;
@@ -89,45 +143,83 @@
   // ---- HOME ----
   function card(a) {
     var chips = a.accessTypes.map(function (t) { return '<span class="chip access">' + ACCESS[t] + '</span>'; }).join('') +
-      a.species.map(function (s) { return '<span class="chip">' + SPECIES[s] + '</span>'; }).join('') +
+      a.species.map(function (s) { return '<span class="chip">' + (SPECIES[s] || s) + '</span>'; }).join('') +
       (a.hasFishing ? '<span class="chip water">Fishing</span>' : '') +
-      (a.region === 'outside' ? '<span class="chip out">Example outside v1 region</span>' : '') +
-      (hasPlaceholder(a) ? '<span class="chip ph">Has placeholders</span>' : '');
-    var near = a.region === 'outside' ? '' : '<div class="chips"><span class="chip near">~' + a.approxMiles.clifton + ' mi from Clifton</span><span class="chip near">~' + a.approxMiles.collegeStation + ' mi from College Station</span></div>';
+      (hasPlaceholder(a) ? '<span class="chip ph">Has placeholders</span>' : '') + (isPrivate(a) ? '<span class="chip ph">Private land · drawn permit only</span>' : '') + (isCurrent(a) ? '' : '<span class="chip ph">Not verified for current season</span>');
+    var outChip = (a.region === 'outside' ? '<span class="chip out">Example outside Central Texas</span>' : '');
+    var land = a.subregion && LANDSCAPE[a.subregion] ? '<span class="chip near">' + LANDSCAPE[a.subregion] + '</span>' : '';
+    var lease = a.annualLease ? '<span class="chip ph">Annual unit</span>' : '';
+    var nh = a.region === 'outside' || isPrivate(a) ? null : nearestHub(a);
+    var near = nh ? '<div class="chips"><span class="chip near">~' + nh.miles + ' mi from ' + esc(nh.label) + '</span></div>' : '';
     return '<article class="card" data-id="' + a.id + '"><a class="thumb" href="area.html?id=' + a.id + '" tabindex="-1" aria-hidden="true">' + headerArt(a) + '</a><div class="body">' +
       '<div class="kicker">' + esc(a.kind) + ' · ' + esc(a.county) + ' County</div><h3><a href="area.html?id=' + a.id + '">' + esc(a.name) + '</a></h3>' +
-      '<p class="muted small" style="margin:0">' + esc(a.blurb) + '</p><div class="chips">' + chips + '</div>' + near +
-      '<div class="verified"><strong>Last verified:</strong> ' + fmtDate(META.lastVerified) + '</div></div></article>';
+      '<p class="muted small" style="margin:0">' + esc(a.blurb) + '</p><div class="chips">' + chips + land + lease + outChip + '</div>' + near +
+      '<div class="verified"><strong>Last verified:</strong> ' + verifiedDate(a) + ' · ' + esc(verifiedSeason(a)) + ' season</div></div></article>';
+  }
+  function haystack(a) {
+    return [a.name, a.county, a.kind, a.blurb, a.accessLabel, a.acres, (a.species || []).join(' '), a.subregion || '', a.id].join(' ').toLowerCase();
+  }
+  function groupAreas(list) {
+    var order = ['cross-timbers', 'blackland-post-oak', 'hill-country', 'outside', ''];
+    var groups = {};
+    list.forEach(function (a) {
+      var k = a.region === 'outside' ? 'outside' : (a.subregion || '');
+      (groups[k] = groups[k] || []).push(a);
+    });
+    return order.filter(function (k) { return groups[k] && groups[k].length; }).map(function (k) {
+      var title = k === 'outside' ? 'Example outside Central Texas' : (LANDSCAPE[k] || 'Other areas');
+      return { key: k, title: title, items: groups[k] };
+    });
   }
   function home() {
     var form = $('#finder'), list = $('#list'), count = $('#count');
     var params = new URLSearchParams(location.search);
-    ['q', 'species', 'access', 'near'].forEach(function (k) { if (params.get(k) && form.elements[k]) form.elements[k].value = params.get(k); });
+    ['q', 'species', 'access', 'landscape', 'near'].forEach(function (k) { if (params.get(k) && form.elements[k]) form.elements[k].value = params.get(k); });
     form.elements.fishing.checked = params.get('fishing') === '1';
     form.elements.outside.checked = params.get('outside') !== '0';
     function apply() {
       var q = form.elements.q.value.trim().toLowerCase(), sp = form.elements.species.value, ac = form.elements.access.value,
-        fi = form.elements.fishing.checked, nr = form.elements.near.value, ou = form.elements.outside.checked;
+        fi = form.elements.fishing.checked, nr = form.elements.near.value, ou = form.elements.outside.checked,
+        ls = form.elements.landscape ? form.elements.landscape.value : '';
       var res = AREAS.filter(function (a) {
-        if (q && (a.name + ' ' + a.county + ' ' + a.kind + ' ' + a.blurb + ' ' + a.species.join(' ')).toLowerCase().indexOf(q) < 0) return false;
+        if (q && haystack(a).indexOf(q) < 0) return false;
         if (sp && a.species.indexOf(sp) < 0) return false;
         if (ac && a.accessTypes.indexOf(ac) < 0) return false;
+        if (ls && a.subregion !== ls) return false;
         if (fi && !a.hasFishing) return false;
-        if (nr === 'clifton' && !(a.approxMiles.clifton <= NEAR_MI && a.region === 'v1')) return false;
-        if (nr === 'college-station' && !(a.approxMiles.collegeStation <= NEAR_MI && a.region === 'v1')) return false;
+        if (nr) {
+          var key = NEAR_KEY[nr];
+          var d = key ? miles(a, key) : null;
+          if (!(typeof d === 'number' && d <= NEAR_MI && a.region !== 'outside')) return false;
+        }
         if (!ou && a.region === 'outside') return false;
         return true;
       });
-      var town = nr === 'clifton' ? 'clifton' : nr === 'college-station' ? 'cs' : null;
-      if (town) res.sort(function (x, y) { return miles(x, town) - miles(y, town); });
-      var v1 = res.filter(function (a) { return a.region === 'v1'; }), out = res.filter(function (a) { return a.region === 'outside'; });
+      if (nr && NEAR_KEY[nr]) {
+        var nk = NEAR_KEY[nr];
+        res.sort(function (x, y) {
+          var dx = miles(x, nk), dy = miles(y, nk);
+          if (dx === dy) return x.name.localeCompare(y.name);
+          return (dx || 9999) - (dy || 9999);
+        });
+      } else {
+        res.sort(function (x, y) { return x.name.localeCompare(y.name); });
+      }
       count.textContent = res.length + (res.length === 1 ? ' area' : ' areas');
-      list.innerHTML = res.length ? '<div class="grid">' + v1.map(card).join('') + '</div>' +
-        (out.length ? '<h2 class="section-label">Example outside the v1 region</h2><div class="grid">' + out.map(card).join('') + '</div>' : '') :
-        '<div class="empty"><b>No areas match.</b><p class="muted">Try removing a filter. This prototype has ' + AREAS.length + ' areas.</p><button class="btn ghost" type="button" id="clear2">Clear filters</button></div>';
+      var html;
+      if (!res.length) {
+        html = '<div class="empty"><b>No areas match.</b><p class="muted">Try removing a filter. This guide has ' + AREAS.length + ' areas.</p><button class="btn ghost" type="button" id="clear2">Clear filters</button></div>';
+      } else if (nr) {
+        html = '<div class="grid">' + res.map(card).join('') + '</div>';
+      } else {
+        html = groupAreas(res).map(function (g) {
+          return '<h2 class="section-label">' + esc(g.title) + ' <span class="muted small">(' + g.items.length + ')</span></h2><div class="grid">' + g.items.map(card).join('') + '</div>';
+        }).join('');
+      }
+      list.innerHTML = html;
       var c2 = $('#clear2'); if (c2) c2.onclick = clear;
       var np = new URLSearchParams();
-      if (q) np.set('q', q); if (sp) np.set('species', sp); if (ac) np.set('access', ac); if (fi) np.set('fishing', '1'); if (nr) np.set('near', nr); if (!ou) np.set('outside', '0');
+      if (q) np.set('q', q); if (sp) np.set('species', sp); if (ac) np.set('access', ac); if (ls) np.set('landscape', ls); if (fi) np.set('fishing', '1'); if (nr) np.set('near', nr); if (!ou) np.set('outside', '0');
       var qs = np.toString(); try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '')); } catch (e) { /* file:// quirks */ }
     }
     function clear() { form.reset(); form.elements.outside.checked = true; apply(); }
@@ -144,13 +236,13 @@
     if (!f) return '<section class="panel fish" id="fishing"><h2>Fishing</h2><p>No fishing block for this area: TPWD lists no fishing here' + (a.id === 'keechi-creek-wma' ? ' (fishing is not permitted on Keechi Creek WMA)' : '') + '.</p></section>';
     var h = '<section class="panel fish" id="fishing"><h2>Fishing</h2>';
     if (f.status === 'partial') h += '<p><span class="ph-flag">PLACEHOLDER: awaiting data</span> Partial block: only what TPWD pages say is shown. The rest reads "Not stated in official sources".</p>';
-    h += '<p class="muted small">' + esc(f.intro) + '</p>';
+    h += '<p class="muted small">' + esc(plainBots(f.intro)) + '</p>';
     h += '<h3>Species</h3><p>' + (f.species ? textOrNone(f.species.text, f.species.src) : textOrNone(null)) + '</p>';
     h += '<h3>Best months by species</h3><ul class="kv">' + f.bestMonths.map(function (m) { return '<li><b>' + esc(m.species) + '</b>' + textOrNone(m.text, m.src) + '</li>'; }).join('') + '</ul>';
     h += '<h3>Access</h3><ul class="kv">' + f.access.map(function (m) { return '<li class="' + (m.conflict ? 'conflict' : '') + '"><b>' + esc(m.label) + '</b>' + textOrNone(m.text, m.src) + '</li>'; }).join('') + '</ul>';
     h += '<h3>License and regulation notes</h3><ul class="kv">' + f.license.map(function (m) { return '<li class="' + (m.conflict ? 'conflict' : '') + '"><b>' + esc(m.label) + '</b>' + textOrNone(m.text, m.src) + '</li>'; }).join('') + '</ul>';
     h += '<h3>Tips</h3>' + (f.tips && f.tips.length ? '<ul>' + f.tips.map(function (t) { return '<li>' + txt(t.text) + cite(t.src) + '</li>'; }).join('') + '</ul>' : '<p><span class="not-stated">Not stated in official sources</span></p>');
-    if (f.checkNotes && f.checkNotes.length) h += '<details class="more checknotes" style="margin-top:12px"><summary>Check notes: how this compares with Fishing Bot\'s draft</summary><ul>' + f.checkNotes.map(function (n) { return '<li>' + txt(n) + '</li>'; }).join('') + '</ul></details>';
+    if (f.checkNotes && f.checkNotes.length) h += '<details class="more checknotes" style="margin-top:12px"><summary>Check notes: where sources differ or could not be confirmed</summary><ul>' + f.checkNotes.map(function (n) { return '<li>' + txt(plainBots(n)) + '</li>'; }).join('') + '</ul></details>';
     h += '<p class="small muted" style="margin-top:10px">Fishing sources: ' + (f.sources || []).map(function (id) { return SOURCES[id] ? cite([id]) : ''; }).join(' ') + '</p>';
     return h + '</section>';
   }
@@ -160,13 +252,18 @@
     if (!a) { document.title = 'Area not found'; root.innerHTML = '<div class="empty" style="margin-top:20px"><h1>Area not found</h1><p><a class="btn" href="index.html">Back to all areas</a></p></div>'; return; }
     document.title = a.name + ' · ' + META.workingName;
     var photo = a.header.type === 'photo' && PH[a.header.key] ? PH[a.header.key] : null;
-    var h = '<p class="crumb"><a href="index.html">← All areas</a></p>';
+    var errUrl = ISSUES + '?title=' + encodeURIComponent('Error report: ' + a.name) + '&body=' + encodeURIComponent('Area: ' + a.name + ' (' + a.id + ')\nPage: ' + location.href.split('#')[0] + '\n\nWhat looks wrong, and the TPWD page that shows the correct info:\n');
+    var h = '<div class="sheet-block"><p class="crumb"><a href="index.html">← All areas</a></p>';
     h += '<div class="area-hero"><div class="art">' + headerArt(a) + '</div></div>';
-    h += '<p class="photo-credit">' + (photo ? esc(a.header.caption) + ' Photo: ' + esc(photo.author) + ' via <a href="' + esc(photo.page) + '" rel="noopener">Wikimedia Commons</a>, <a href="' + esc(photo.licenseUrl) + '" rel="noopener">' + esc(photo.license) + '</a>.' : 'Illustrated header (not a photo of the area).') + '</p>';
+    h += '<p class="photo-credit">' + (photo ? esc(a.header.caption) + ' ' + creditHTML(photo) : 'Illustrated header (not a photo of the area).') + '</p>';
     h += '<h1 class="area-title">' + esc(a.name) + '</h1><div class="kicker">' + esc(a.kind) + ' · ' + esc(a.county) + ' County · ' + esc(a.acres) + '</div>';
-    h += '<div class="verify-badge">✔ Last verified: ' + fmtDate(META.lastVerified) + ' <span class="small" style="font-weight:500">(against TPWD pages, ' + esc(META.seasonYear) + ' season)</span></div>';
-    if (a.region === 'outside') h += '<div class="outside-flag">Example outside the v1 region. ' + esc(a.outsideNote) + '</div>';
-    h += '<p>' + esc(a.blurb) + '</p><div class="disclaimer">' + esc(META.disclaimer) + '</div>';
+    h += verifyHTML(a);
+    h += '<div class="disclaimer top-disclaimer">' + esc(DISC) + '</div>';
+    if (isPrivate(a)) h += '<div class="private-notice" role="alert"><b>Private property.</b> Access ONLY with a valid drawn permit for the listed dates. Entering otherwise is trespassing. <a href="' + esc(a.directions.url) + '" rel="noopener">Official TPWD listing ↗</a> (this guide gives no directions or entry points beyond what TPWD shows).</div>';
+    if (a.region === 'outside') h += '<div class="outside-flag">Example outside Central Texas. ' + esc(a.outsideNote || '') + '</div>';
+    if (a.annualLease) h += '<div class="outside-flag">Annual APH lease unit: this tract can change or drop out of the program from year to year. This page is for the ' + esc(verifiedSeason(a)) + ' season only. Check the current Public Hunting Lands Map Booklet before you go.</div>';
+    h += '<p>' + esc(a.blurb) + '</p><p class="small"><a class="report-link" href="' + esc(errUrl) + '" rel="noopener">Report an error on this page ↗</a></p>';
+    h += '</div>';
 
     // permits + quick facts
     h += '<section class="panel" id="permit"><h2>Required permit</h2><dl class="facts">' +
@@ -176,13 +273,13 @@
       '<p class="small"><a href="permits.html">Permits explained</a> (APH, LPU, drawn hunts)</p></section>';
 
     // species + seasons
-    h += '<section class="panel" id="seasons"><h2>Species and seasons (' + esc(META.seasonYear) + ')</h2>';
-    if (a.hunting.status === 'placeholder') h += '<p><span class="ph-flag">' + PHTXT + '</span> Hunting Bot data for this area has not arrived.</p>';
+    h += '<section class="panel" id="seasons"><h2>Species and seasons (' + esc(verifiedSeason(a)) + ')</h2>';
+    if (a.hunting.status === 'placeholder') h += '<p><span class="ph-flag">' + PHTXT + '</span> Season details for this area are not available yet.</p>';
     h += '<p class="muted small">' + txt(a.hunting.summary) + '</p><div class="seasons">' + a.hunting.seasons.map(function (s) {
       var ph = s.status === 'placeholder';
-      return '<div class="season' + (ph ? ' placeholder' : '') + '"><h3>' + txt(s.species) + (ph ? ' <span class="ph-flag">' + PHTXT + '</span>' : '') + '</h3><div class="when">' + txt(s.season) + cite(s.src) + '</div>' + (s.notes ? '<div class="small">' + txt(s.notes) + '</div>' : '') + '</div>';
+      return '<div class="season' + (ph ? ' placeholder' : '') + '"><h3>' + txt(s.species) + (ph ? ' <span class="ph-flag">' + PHTXT + '</span>' : '') + '</h3><div class="when">' + txt(s.season) + cite(s.src) + '</div>' + (s.notes ? (function () { var c = clip(s.notes, 260); return '<div class="small">' + txt(c.text) + (c.cut ? srcLink(s.src) : '') + '</div>'; })() : '') + '</div>';
     }).join('') + '</div>';
-    if (a.hunting.extra) h += '<p style="margin-top:10px">' + txt(a.hunting.extra) + cite(a.hunting.extraSrc) + '</p>';
+    if (a.hunting.extra) h += '<p style="margin-top:10px">' + (function () { var c = clip(a.hunting.extra, 320); return txt(c.text) + cite(a.hunting.extraSrc) + (c.cut ? srcLink(a.hunting.extraSrc) : ''); })() + '</p>';
     h += '</section>';
 
     // access
@@ -193,7 +290,7 @@
       a.maps.map(function (m) { return '<a class="btn ghost small" href="' + esc(m.url) + '" rel="noopener">' + esc(m.label) + ' ↗</a>' + cite(m.src); }).join('') +
       '<a class="btn small" href="' + esc(a.directions.url) + '" rel="noopener">' + esc(a.directions.label) + ' ↗</a></div>' +
       '<p class="small" style="margin-top:10px">' + esc(a.address || '') + (a.phone ? ' · ' + esc(a.phone) : '') + '</p>' +
-      (a.region === 'v1' ? '<p class="small muted">' + 'About ' + a.approxMiles.clifton + ' mi from Clifton and ' + a.approxMiles.collegeStation + ' mi from College Station. ' + esc(META.distanceNote) + '</p>' : '') + '</section>';
+      (a.region !== 'outside' && !isPrivate(a) && a.approxMiles ? '<p class="small muted">' + ['clifton','collegeStation','waco','austin','temple','stephenville','brownwood','llano'].filter(function(k){ return typeof a.approxMiles[k] === 'number'; }).map(function(k){ return '~' + a.approxMiles[k] + ' mi from ' + HUBS[k]; }).join('; ') + '. ' + esc(META.distanceNote) + '</p>' : '') + '</section>';
 
     // zones
     h += '<section class="panel" id="zones"><h2>Best zones</h2>' + (a.zones.length ? '<ul>' + a.zones.map(function (z) { return '<li>' + txt(z.text) + cite(z.src) + '</li>'; }).join('') + '</ul>' : '') + '<p class="small muted">' + esc(a.zonesNote) + '</p></section>';
@@ -206,8 +303,8 @@
     (a.fishing && a.fishing.sources || []).forEach(function (s) { cite([s]); });
     h += '<section class="panel" id="sources"><h2>Sources</h2><ol class="sources">' + cites.map(function (sid, i) {
       return '<li id="src-' + (i + 1) + '"><a href="' + esc(SOURCES[sid].url) + '" rel="noopener">' + esc(SOURCES[sid].label) + ' ↗</a></li>';
-    }).join('') + '</ol><p class="small muted">All official TPWD pages. Checked ' + fmtDate(META.lastVerified) + '.</p></section>';
-    h += '<div class="disclaimer">' + esc(META.disclaimer) + '</div>';
+    }).join('') + '</ol><p class="small muted">All official TPWD pages. Checked ' + verifiedDate(a) + '.</p></section>';
+    h += '<div class="disclaimer">' + esc(DISC) + ' <a class="report-link" href="' + esc(errUrl) + '" rel="noopener">Report an error ↗</a></div>';
     root.innerHTML = h;
   }
 
@@ -217,10 +314,10 @@
   if (page === 'home') { home(); var art0 = $('#hero-art'); if (art0) art0.innerHTML = art('lake', 'hero'); }
   if (page === 'area') area();
   if (page === 'about') {
-    var ul = $('#credits'); if (ul) ul.innerHTML = Object.keys(PH).map(function (k) { var p = PH[k]; return '<li>“' + esc(p.title) + '” by ' + esc(p.author) + ', <a href="' + esc(p.page) + '" rel="noopener">Wikimedia Commons</a>, <a href="' + esc(p.licenseUrl) + '" rel="noopener">' + esc(p.license) + '</a>.</li>'; }).join('');
+    var ul = $('#credits'); if (ul) ul.innerHTML = Object.keys(PH).map(function (k) { return '<li>' + creditHTML(PH[k]) + '</li>'; }).join('') + '<li>Background photos: Photos by Judd New.</li>';
     var st = $('#areastatus'); if (st) st.innerHTML = AREAS.map(function (a) {
       var fs = a.fishing ? a.fishing.status : 'none';
-      return '<tr><td><a href="area.html?id=' + a.id + '">' + esc(a.name) + '</a>' + (a.region === 'outside' ? '<br><span class="small muted">outside v1 region</span>' : '') + '</td><td>' + (a.hunting.status === 'placeholder' ? '<span class="ph-flag">PLACEHOLDER</span>' : 'TPWD-sourced') + (hasPlaceholder(a) && a.hunting.status !== 'placeholder' ? ' <span class="ph-flag">some rows PLACEHOLDER</span>' : '') + '</td><td>' + esc(fs.replace(/-/g, ' ')) + '</td></tr>';
+      return '<tr><td><a href="area.html?id=' + a.id + '">' + esc(a.name) + '</a>' + (a.region === 'outside' ? '<br><span class="small muted">outside Central Texas</span>' : (a.subregion && LANDSCAPE[a.subregion] ? '<br><span class="small muted">' + LANDSCAPE[a.subregion] + ' · ' + esc(a.county) + '</span>' : '')) + '</td><td>' + (a.hunting.status === 'placeholder' ? '<span class="ph-flag">PLACEHOLDER</span>' : 'TPWD-sourced') + (hasPlaceholder(a) && a.hunting.status !== 'placeholder' ? ' <span class="ph-flag">some rows PLACEHOLDER</span>' : '') + ' <span class="small muted">' + verifiedDate(a) + '</span></td><td>' + esc(fs.replace(/-/g, ' ')) + '</td></tr>';
     }).join('');
   }
 
